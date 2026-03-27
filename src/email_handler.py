@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 #
 # Handles emails from the config. Delivers after X amount of time

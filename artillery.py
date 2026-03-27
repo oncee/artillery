@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #####################################################################
 #
 #  Artillery v1.0
@@ -13,7 +13,7 @@ import time,sys,thread,os,subprocess
 # check if its installed
 if not os.path.isfile("/var/artillery/artillery.py"):
     print "[*] Artillery is not installed, running setup.py.."
-    subprocess.Popen("python setup.py", shell=True).wait()
+    subprocess.Popen("python3 setup.py", shell=True).wait()
     sys.exit()
 
 from src.core import *

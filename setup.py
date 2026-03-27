@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 # quick script for installing artillery
 #
@@ -51,7 +51,7 @@ if answer.lower() == "y" or answer.lower() == "yes":
             if os.path.isfile("/etc/init.d/rc.local"):
                 fileopen = file("/etc/init.d/rc.local", "r")
                 data = fileopen.read()
-                data = data.replace("sudo python /var/artillery/artillery.py &", "")
+                data = data.replace("sudo python3 /var/artillery/artillery.py &", "")
                 filewrite = file("/etc/init.d/rc.local", "w")
                 filewrite.write(data)
                 filewrite.close()
@@ -84,7 +84,7 @@ if answer.lower() == "y" or answer.lower() == "yes":
             if not os.path.isfile("/Library/LaunchDaemons/com.artillery.plist"):
                 print "[*] Creating com.artillery.plist in your Daemons directory"
                 filewrite = file("/Library/LaunchDaemons/com.artillery.plist", "w")
-                filewrite.write('<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n<key>Disabled</key>\n<false/>\n<key>ProgramArguments</key>\n<array>\n<string>/usr/bin/python</string>\n<string>/var/artillery/artillery.py</string>\n</array>\n<key>KeepAlive</key>\n<true/>\n<key>RunAtLoad</key>\n<true/>\n<key>Label</key>\n<string>com.artillery</string>\n<key>Debug</key>\n<true/>\n</dict>\n</plist>')
+                filewrite.write('<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n<key>Disabled</key>\n<false/>\n<key>ProgramArguments</key>\n<array>\n<string>/usr/bin/python3</string>\n<string>/var/artillery/artillery.py</string>\n</array>\n<key>KeepAlive</key>\n<true/>\n<key>RunAtLoad</key>\n<true/>\n<key>Label</key>\n<string>com.artillery</string>\n<key>Debug</key>\n<true/>\n</dict>\n</plist>')
                 print "[*] Adding right permissions"
                 subprocess.Popen("chown root:wheel /Library/LaunchDaemons/com.artillery.plist", shell=True).wait()
 
