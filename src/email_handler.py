@@ -4,7 +4,7 @@
 # Handles emails from the config. Delivers after X amount of time
 #
 #
-import shutil,time,thread
+import shutil,time,_thread
 from src.core import *
 
 # check how long to send the email
@@ -17,7 +17,7 @@ def check_alert():
         # if the file is there, read it in then trigger email
         if os.path.isfile("/var/artillery/src/program_junk/email_alerts.log"):
             # read open the file to be sent
-            fileopen = file("/var/artillery/src/program_junk/email_alerts.log", "r")
+            fileopen = open("/var/artillery/src/program_junk/email_alerts.log", "r")
             data = fileopen.read()
             if is_config_enabled("EMAIL_ALERTS"):
                 send_mail("[!] Artillery has new notifications for you. [!]",
@@ -27,4 +27,4 @@ def check_alert():
         time.sleep(int(mail_time))
 
 # start a threat for checking email frequency
-thread.start_new_thread(check_alert, ())
+_thread.start_new_thread(check_alert, ())

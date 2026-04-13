@@ -3,13 +3,13 @@
 # this is the honeypot stuff
 #
 #
-import thread
+import _thread
 import socket
 import sys
 import re
 import subprocess
 import time
-import SocketServer
+import socketserver
 import os
 import random
 import datetime
@@ -22,7 +22,7 @@ bind_interface = read_config("BIND_INTERFACE")
 honeypot_ban = is_config_enabled("HONEYPOT_BAN")
 
 # main socket server listener for responses
-class SocketListener((SocketServer.BaseRequestHandler)):
+class SocketListener((socketserver.BaseRequestHandler)):
 
     def handle(self):
         pass
@@ -58,8 +58,8 @@ class SocketListener((SocketServer.BaseRequestHandler)):
                     # if it isn't whitelisted and we are set to ban
                     ban(self.client_address[0])
 
-        except Exception, e:
-            print "[!] Error detected. Printing: " + str(e)
+        except Exception as e:
+            print("[!] Error detected. Printing: " + str(e))
             pass
 
 # here we define a basic server
@@ -67,38 +67,39 @@ def listen_server(port,bind_interface):
     try:
         port = int(port)
         if bind_interface == "":
-            server = SocketServer.ThreadingTCPServer(('', port), SocketListener)
+            server = socketserver.ThreadingTCPServer(('', port), SocketListener)
         else:
-            server = SocketServer.ThreadingTCPServer(('%s' % bind_interface, port), SocketListener)
+            server = socketserver.ThreadingTCPServer(('%s' % bind_interface, port), SocketListener)
         server.serve_forever()
 
     # if theres already something listening on this port
     except Exception:
-	# write a log if we are unable to bind to an interface
-	write_log("[!] %s: Artillery was unable to bind to port: %s. This could be to an active port in use." % (grab_time(),port))	 
-	pass
+        # write a log if we are unable to bind to an interface
+        write_log("[!] %s: Artillery was unable to bind to port: %s. This could be to an active port in use." % (grab_time(), port))
+        pass
 
 # check to see which ports we are using and ban if ports are touched
 def main(ports,bind_interface):
 
-        # pull the banlist path
-    if os.path.isfile("check_banlist_path"):
+    # pull the banlist path
+    banlist_path = check_banlist_path()
+    if os.path.isfile(banlist_path):
         banlist_path = check_banlist_path()
-        fileopen = file(banlist_path, "r")
+        fileopen = open(banlist_path, "r")
         for line in fileopen:
-        # remove any bogus characters
+            # remove any bogus characters
             line = line.rstrip()
             # ban actual IP addresses
             if honeypot_ban:
                 whitelist = read_config("WHITELIST_IP")
                 match = re.search(line, whitelist)
                 if not match:
-                        # ban the ipaddress
+                    # ban the ipaddress
                     ban(line)
     # split into tuple
     ports = ports.split(",")
     for port in ports:
-        thread.start_new_thread(listen_server, (port,bind_interface,))
+        _thread.start_new_thread(listen_server, (port,bind_interface,))
 
 # launch the application
 main(ports,bind_interface)
