@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 # eventual home for checking some base files for security configurations
 #
@@ -14,7 +14,7 @@ if is_posix():
     # check ssh config
     #
     if os.path.isfile("/etc/ssh/sshd_config"):
-        fileopen = file("/etc/ssh/sshd_config", "r")
+        fileopen = open("/etc/ssh/sshd_config", "r")
         data = fileopen.read()
         if is_config_enabled("ROOT_CHECK"):
             match = re.search("RootLogin yes", data)
@@ -32,10 +32,10 @@ if is_posix():
     # check ftp config
     #
     if os.path.isfile("/etc/vsftpd.conf"):
-        fileopen = file("/etc/vsftpd.conf", "r")
+        fileopen = open("/etc/vsftpd.conf", "r")
         data = fileopen.read()
         match = re.search("anonymous_enable=YES", data)
-        if match:	
+        if match:
             # trigger warning if match
             warning = warning + "[!] Issue identified: /etc/vsftpd.conf allows Anonymous login. An attacker can gain a foothold to the system with absolutel zero effort. Recommendation: Change anonymous_enable yes to anonymous_enable no\n\r\n\r"
 
