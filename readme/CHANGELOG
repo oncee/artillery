@@ -1,4 +1,14 @@
 ~~~~~~~~~~~~~~~~~~~~~~
+version 1.4.2
+~~~~~~~~~~~~~~~~~~~~~~
+
+* migrated major runtime paths from Python 2 to Python 3 compatible syntax/modules
+* added non-interactive installer support for automation/CI via --non-interactive and --assume-yes
+* updated setup/bootstrap behavior for non-TTY environments to prevent prompt blocking
+* fixed bytes/string handling issues in monitor/core paths (hash/diff parsing and external feed parsing)
+* improved iptables sync logic to parse existing IPs and reduce duplicate ban operations
+
+~~~~~~~~~~~~~~~~~~~~~~
 version 1.4.1
 ~~~~~~~~~~~~~~~~~~~~~~
 

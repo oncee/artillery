@@ -1,8 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 # This one monitors file system integrity
 #
-import os,re, hashlib, time, subprocess, thread,datetime, shutil
+import os,re, hashlib, time, subprocess, _thread,datetime, shutil
 from src.core import *
 
 def monitor_system(time_wait):
@@ -46,7 +46,7 @@ def monitor_system(time_wait):
                             # some system protected files may not show up, so we check here
                             if os.path.isfile(filename):
                                 try:
-                                    fileopen = file(filename, "rb")
+                                    fileopen = open(filename, "rb")
                                     data = fileopen.read()
 
                                 except: pass
@@ -60,23 +60,23 @@ def monitor_system(time_wait):
                                 total_compare = total_compare + compare
 
     # write out temp database
-    temp_database_file = file("/var/artillery/database/temp.database", "w")
+    temp_database_file = open("/var/artillery/database/temp.database", "w")
     temp_database_file.write(total_compare)
     temp_database_file.close()
 
     # once we are done write out the database, if this is the first time, create a database then compare
     if not os.path.isfile("/var/artillery/database/integrity.database"):
         # prep the integrity database to be written for first time
-        database_file = file("/var/artillery/database/integrity.database", "w")
+        database_file = open("/var/artillery/database/integrity.database", "w")
         database_file.write(total_compare)
         database_file.close()
 
     # hash the original database
     if os.path.isfile("/var/artillery/database/integrity.database"):
-        database_file = file("/var/artillery/database/integrity.database", "r")
+        database_file = open("/var/artillery/database/integrity.database", "rb")
         database_content = database_file.read()
         if os.path.isfile("/var/artillery/database/temp.database"):
-            temp_database_file = file("/var/artillery/database/temp.database", "r")
+            temp_database_file = open("/var/artillery/database/temp.database", "rb")
             temp_hash = temp_database_file.read()
 
             # hash the databases then compare
@@ -93,12 +93,13 @@ def monitor_system(time_wait):
                 # using diff for now, this will be rewritten properly at a later time
                 compare_files = subprocess.Popen("diff /var/artillery/database/integrity.database /var/artillery/database/temp.database", shell=True, stdout=subprocess.PIPE)
                 output_file = compare_files.communicate()[0]
-                if output_file == "":
+                if output_file == b"":
                     # no changes
                     pass
 
                 else:
                     subject = "[!] Artillery has detected a change. [!]"
+                    output_file = output_file.decode("utf-8", errors="ignore")
                     output_file = "********************************** The following changes were detect at %s **********************************\n" % (datetime.datetime.now()) + output_file + "\n********************************** End of changes. **********************************\n\n"
                     warn_the_good_guys(subject, output_file)
 
@@ -114,10 +115,10 @@ def start_monitor():
 
         # loop forever
         while 1:
-            thread.start_new_thread(monitor_system, (time_wait,))
+            _thread.start_new_thread(monitor_system, (time_wait,))
             time_wait = int(time_wait)
             time.sleep(time_wait)
 
 # start the thread only if its running posix will rewrite this module to use difflib and some others butfor now its reliant on linux
 if is_posix():
-    thread.start_new_thread(start_monitor, ())
+    _thread.start_new_thread(start_monitor, ())
