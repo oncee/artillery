@@ -13,7 +13,10 @@ import time,sys,_thread,os,subprocess
 # check if its installed
 if not os.path.isfile("/var/artillery/artillery.py"):
     print("[*] Artillery is not installed, running setup.py..")
-    subprocess.Popen("python3 setup.py", shell=True).wait()
+    setup_command = "python3 setup.py"
+    if not sys.stdin.isatty():
+        setup_command += " --non-interactive"
+    subprocess.Popen(setup_command, shell=True).wait()
     sys.exit()
 
 from src.core import *

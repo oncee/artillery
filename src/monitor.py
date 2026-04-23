@@ -73,10 +73,10 @@ def monitor_system(time_wait):
 
     # hash the original database
     if os.path.isfile("/var/artillery/database/integrity.database"):
-        database_file = open("/var/artillery/database/integrity.database", "r")
+        database_file = open("/var/artillery/database/integrity.database", "rb")
         database_content = database_file.read()
         if os.path.isfile("/var/artillery/database/temp.database"):
-            temp_database_file = open("/var/artillery/database/temp.database", "r")
+            temp_database_file = open("/var/artillery/database/temp.database", "rb")
             temp_hash = temp_database_file.read()
 
             # hash the databases then compare
@@ -93,12 +93,13 @@ def monitor_system(time_wait):
                 # using diff for now, this will be rewritten properly at a later time
                 compare_files = subprocess.Popen("diff /var/artillery/database/integrity.database /var/artillery/database/temp.database", shell=True, stdout=subprocess.PIPE)
                 output_file = compare_files.communicate()[0]
-                if output_file == "":
+                if output_file == b"":
                     # no changes
                     pass
 
                 else:
                     subject = "[!] Artillery has detected a change. [!]"
+                    output_file = output_file.decode("utf-8", errors="ignore")
                     output_file = "********************************** The following changes were detect at %s **********************************\n" % (datetime.datetime.now()) + output_file + "\n********************************** End of changes. **********************************\n\n"
                     warn_the_good_guys(subject, output_file)
 

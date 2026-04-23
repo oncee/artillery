@@ -199,6 +199,7 @@ def create_iptables_subset():
     #sync our iptables blocks with the existing ban file so we don't forget attackers
     proc = subprocess.Popen("iptables -L ARTILLERY -n --line-numbers", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     iptablesbanlist = proc.stdout.readlines()
+    iptablesbanlist = [line.decode("utf-8", errors="ignore") for line in iptablesbanlist]
 
     if os.path.isfile(check_banlist_path()):
         banfile = open(check_banlist_path(), "r")
@@ -212,7 +213,7 @@ def create_iptables_subset():
     # iterate through lines in ban file and ban them if not already banned
     for ip in banfile:
         if not ip.startswith("#"):
-            if ip not in iptablesbanlist:
+            if ip.strip() not in "".join(iptablesbanlist):
                 ip = ip.strip()
                 ban(ip) #subprocess.Popen("iptables -I ARTILLERY 1 -s %s -j DROP" % ip.strip(), shell=True).wait()
 
