@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 #############################
 #
@@ -6,7 +6,7 @@
 # added by e @ Nov 5th
 #############################
 
-import time,re, thread
+import time,re, _thread
 from src.core import *
 
 send_email = read_config("ALERT_USER_EMAIL")
@@ -20,15 +20,15 @@ def ftp_monitor(monitor_time):
     while 1:
         # for debian base
         if os.path.isfile("/var/log/vsftpd.log"):
-            fileopen1 = file("/var/log/auth.log", "r")
+            fileopen1 = open("/var/log/auth.log", "r")
         else:
-            print "Has not found configuration file for ftp. Ftp monitor now stops."
+            print("Has not found configuration file for ftp. Ftp monitor now stops.")
             break
 
 
         if not os.path.isfile("/var/artillery/banlist.txt"):
             # create a blank file
-            filewrite = file("/var/artillery/banlist.txt", "w")
+            filewrite = open("/var/artillery/banlist.txt", "w")
             filewrite.write("")
             filewrite.close()
 
@@ -38,7 +38,7 @@ def ftp_monitor(monitor_time):
             counter = 0
             for line in fileopen1:
                 counter = 0
-                fileopen2 = file("/var/artillery/banlist.txt", "r")
+                fileopen2 = open("/var/artillery/banlist.txt", "r")
                 line = line.rstrip()
                 # search for bad ftp
                 match = re.search("CONNECT: Client", line)
@@ -91,9 +91,9 @@ def ftp_monitor(monitor_time):
             # sleep for defined time
             time.sleep(monitor_time)
 
-        except Exception, e:
-            print "[*] An error in ftp monitor occured. Printing it out here: " + str(e)
+        except Exception as e:
+            print("[*] An error in ftp monitor occured. Printing it out here: " + str(e))
 
 if is_posix():
     # start thread
-    thread.start_new_thread(ftp_monitor,(monitor_time,))
+    _thread.start_new_thread(ftp_monitor,(monitor_time,))
