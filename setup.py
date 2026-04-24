@@ -13,7 +13,14 @@ except ImportError:
 from src.core import *
 
 NON_INTERACTIVE = "--non-interactive" in sys.argv
-ASSUME_YES = "--assume-yes" in sys.argv
+
+
+def env_truthy(name):
+    value = os.environ.get(name, "")
+    return value.strip().lower() in ("1", "true", "yes", "y", "on")
+
+
+ASSUME_YES = "--assume-yes" in sys.argv or env_truthy("ARTILLERY_ASSUME_YES")
 
 
 def prompt_input(message, default_answer="n"):
