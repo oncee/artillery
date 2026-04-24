@@ -1,30 +1,66 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 # quick script for installing artillery
 #
 #
-import subprocess,re,os,shutil
+import subprocess,os,shutil
+import sys
+import stat
+try:
+    import grp
+except ImportError:
+    grp = None
 from src.core import *
 
-print '''
+NON_INTERACTIVE = "--non-interactive" in sys.argv
+ASSUME_YES = "--assume-yes" in sys.argv
+
+
+def prompt_input(message, default_answer="n"):
+    if ASSUME_YES:
+        return "y"
+    if NON_INTERACTIVE:
+        return default_answer
+    return input(message)
+
+
+def copy_tree_contents(source_dir, target_dir):
+    source_real = os.path.realpath(source_dir)
+    target_real = os.path.realpath(target_dir)
+    if source_real == target_real:
+        raise ValueError("Source and target directories must be different.")
+    if source_real.startswith(target_real + os.sep) or target_real.startswith(source_real + os.sep):
+        raise ValueError("Source/target directory overlap is not allowed.")
+
+    for entry in os.listdir(source_dir):
+        src = os.path.join(source_dir, entry)
+        dst = os.path.join(target_dir, entry)
+        if os.path.isdir(src):
+            if os.path.exists(dst):
+                shutil.rmtree(dst)
+            shutil.copytree(src, dst)
+        else:
+            shutil.copy2(src, dst)
+
+print('''
 Welcome to the Artillery installer. Artillery is a honeypot, file monitoring, and overall security tool used to protect your nix systems.
 
 Written by: Dave Kennedy (ReL1K)
-'''
+''')
 
 if os.path.isfile("/etc/init.d/artillery"):
-    answer = raw_input("Artillery detected. Do you want to uninstall [y/n:] ")
+    answer = prompt_input("Artillery detected. Do you want to uninstall [y/n:] ")
     if answer.lower() == "yes" or answer.lower() == "y":
         answer = "uninstall"
 
 if not os.path.isfile("/etc/init.d/artillery"):
-    answer = raw_input("Do you want to install Artillery and have it automatically run when you restart [y/n]: ")
+    answer = prompt_input("Do you want to install Artillery and have it automatically run when you restart [y/n]: ")
 
 if answer.lower() == "y" or answer.lower() == "yes":
     if is_posix():
         kill_artillery()
 
-        print "[*] Beginning installation. This should only take a moment."
+        print("[*] Beginning installation. This should only take a moment.")
 
         # if directories aren't there then create them
         if not os.path.isdir("/var/artillery/logs"):
@@ -35,24 +71,27 @@ if answer.lower() == "y" or answer.lower() == "yes":
             os.makedirs("/var/artillery/src/program_junk/")
 
         # install to rc.local
-        print "[*] Adding artillery into startup through init scripts.."
+        print("[*] Adding artillery into startup through init scripts..")
         if os.path.isdir("/etc/init.d"):
             if not os.path.isfile("/etc/init.d/artillery"):
-                fileopen = file("src/startup_artillery", "r")
+                fileopen = open("src/startup_artillery", "r")
                 config = fileopen.read()
-                filewrite = file("/etc/init.d/artillery", "w")
+                filewrite = open("/etc/init.d/artillery", "w")
                 filewrite.write(config)
                 filewrite.close()
-                print "[*] Triggering update-rc.d on artillery to automatic start..."
-                subprocess.Popen("chmod +x /etc/init.d/artillery", shell=True).wait()
-                subprocess.Popen("update-rc.d artillery defaults", shell=True).wait()
+                print("[*] Triggering update-rc.d on artillery to automatic start...")
+                current_mode = os.stat("/etc/init.d/artillery").st_mode
+                os.chmod("/etc/init.d/artillery", current_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+                result = subprocess.run(["update-rc.d", "artillery", "defaults"], check=False)
+                if result.returncode != 0:
+                    write_log("[!] %s: update-rc.d failed during setup." % (grab_time()))
 
             # remove old method if installed previously
             if os.path.isfile("/etc/init.d/rc.local"):
-                fileopen = file("/etc/init.d/rc.local", "r")
+                fileopen = open("/etc/init.d/rc.local", "r")
                 data = fileopen.read()
-                data = data.replace("sudo python /var/artillery/artillery.py &", "")
-                filewrite = file("/etc/init.d/rc.local", "w")
+                data = data.replace("sudo python3 /var/artillery/artillery.py &", "")
+                filewrite = open("/etc/init.d/rc.local", "w")
                 filewrite.write(data)
                 filewrite.close()
 
@@ -66,40 +105,54 @@ if answer.lower() == "y" or answer.lower() == "yes":
 
 
     if is_posix():
-        choice = raw_input("Do you want to keep Artillery updated? (requires internet) [y/n]: ")
+        choice = prompt_input("Do you want to keep Artillery updated? (requires internet) [y/n]: ")
         if choice == "y" or choice == "yes":
-            print "[*] Checking out Artillery through github to /var/artillery"
+            print("[*] Checking out Artillery through github to /var/artillery")
             # if old files are there
             if os.path.isdir("/var/artillery/"):
                 shutil.rmtree('/var/artillery')
-            subprocess.Popen("git clone https://github.com/trustedsec/artillery /var/artillery/", shell=True).wait()
-            print "[*] Finished. If you want to update Artillery go to /var/artillery and type 'git pull'"
+            result = subprocess.run(["git", "clone", "https://github.com/trustedsec/artillery", "/var/artillery/"], check=False)
+            if result.returncode != 0:
+                write_log("[!] %s: git clone failed during setup." % (grab_time()))
+                print("[!] Git clone failed. Artillery setup files were not updated from GitHub.")
+            else:
+                print("[*] Finished. If you want to update Artillery go to /var/artillery and type 'git pull'")
         else:
-            print "[*] Copying setup files over..."
-            subprocess.Popen("cp -rf * /var/artillery/", shell=True).wait()
+            print("[*] Copying setup files over...")
+            try:
+                copy_tree_contents(os.getcwd(), "/var/artillery/")
+            except ValueError as e:
+                write_log("[!] %s: setup copy path error: %s" % (grab_time(), str(e)))
+                print("[!] Unable to copy setup files: %s" % str(e))
 
         # if os is Mac Os X than create a .plist daemon - changes added by contributor - Giulio Bortot
         if os.path.isdir("/Library/LaunchDaemons"):
             # check if file is already in place
             if not os.path.isfile("/Library/LaunchDaemons/com.artillery.plist"):
-                print "[*] Creating com.artillery.plist in your Daemons directory"
-                filewrite = file("/Library/LaunchDaemons/com.artillery.plist", "w")
-                filewrite.write('<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n<key>Disabled</key>\n<false/>\n<key>ProgramArguments</key>\n<array>\n<string>/usr/bin/python</string>\n<string>/var/artillery/artillery.py</string>\n</array>\n<key>KeepAlive</key>\n<true/>\n<key>RunAtLoad</key>\n<true/>\n<key>Label</key>\n<string>com.artillery</string>\n<key>Debug</key>\n<true/>\n</dict>\n</plist>')
-                print "[*] Adding right permissions"
-                subprocess.Popen("chown root:wheel /Library/LaunchDaemons/com.artillery.plist", shell=True).wait()
+                print("[*] Creating com.artillery.plist in your Daemons directory")
+                filewrite = open("/Library/LaunchDaemons/com.artillery.plist", "w")
+                filewrite.write('<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n<key>Disabled</key>\n<false/>\n<key>ProgramArguments</key>\n<array>\n<string>/usr/bin/python3</string>\n<string>/var/artillery/artillery.py</string>\n</array>\n<key>KeepAlive</key>\n<true/>\n<key>RunAtLoad</key>\n<true/>\n<key>Label</key>\n<string>com.artillery</string>\n<key>Debug</key>\n<true/>\n</dict>\n</plist>')
+                print("[*] Adding right permissions")
+                if grp is not None:
+                    wheel_gid = grp.getgrnam("wheel").gr_gid
+                    os.chown("/Library/LaunchDaemons/com.artillery.plist", 0, wheel_gid)
 
-    choice = raw_input("Would you like to start Artillery now? [y/n]: ")
+    choice = prompt_input("Would you like to start Artillery now? [y/n]: ")
     if choice == "yes" or choice == "y":
         if is_posix():
-            subprocess.Popen("/etc/init.d/artillery start", shell=True).wait()
+            result = subprocess.run(["/etc/init.d/artillery", "start"], check=False)
+            if result.returncode != 0:
+                write_log("[!] %s: artillery init script failed to start." % (grab_time()))
 
     if is_posix():
-        print "[*] Installation complete. Edit /var/artillery/config in order to config artillery to your liking.."
+        print("[*] Installation complete. Edit /var/artillery/config in order to config artillery to your liking..")
 
 if answer == "uninstall":
     if is_posix():
-        os.remove("/etc/init.d/artillery")
-        subprocess.Popen("rm -rf /var/artillery", shell=True)
-        subprocess.Popen("rm -rf /etc/init.d/artillery", shell=True)
+        if os.path.isfile("/etc/init.d/artillery"):
+            os.remove("/etc/init.d/artillery")
+        shutil.rmtree("/var/artillery", ignore_errors=True)
+        if os.path.isdir("/etc/init.d/artillery"):
+            shutil.rmtree("/etc/init.d/artillery", ignore_errors=True)
         kill_artillery()
-        print "[*] Artillery has been uninstalled. Manually kill the process if it is still running."
+        print("[*] Artillery has been uninstalled. Manually kill the process if it is still running.")

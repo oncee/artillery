@@ -1,4 +1,26 @@
 ~~~~~~~~~~~~~~~~~~~~~~
+version 1.4.2
+~~~~~~~~~~~~~~~~~~~~~~
+
+* migrated major runtime paths from Python 2 to Python 3 compatible syntax/modules
+* added non-interactive installer support for automation/CI via --non-interactive and --assume-yes
+* updated setup/bootstrap behavior for non-TTY environments to prevent prompt blocking
+* fixed bytes/string handling issues in monitor/core paths (hash/diff parsing and external feed parsing)
+* improved iptables sync logic to parse existing IPs and reduce duplicate ban operations
+* added a reusable validation script (`scripts/validate_python3.sh`) for compile/smoke/pattern checks
+* made non-TTY bootstrap safer by requiring explicit opt-in (`ARTILLERY_ASSUME_YES`) for assume-yes installs
+* improved validation script portability by adding a Python timeout fallback when shell `timeout` is unavailable
+* replaced high-risk shell command interpolation in anti-dos, threat server sync, and remove-ban flows with `subprocess.run(..., shell=False)` + input validation
+* added installer path-overlap guards, safer uninstall file handling, `pgrep` fallback process discovery, and improved update/feed/refresh error logging
+* switched source feed URLs to HTTPS and added installer/update return-code logging for failed command paths
+* removed remaining shell-based diff invocation in monitor flow and added explicit setup bootstrap non-zero exit reporting
+* fixed update clone target path, made setup success messaging conditional on clone result, and added graceful overlap-copy error handling
+* removed stale legacy comments and tightened Python 2 pattern scan regex in validation script to reduce false positives
+* cleaned duplicate/unused imports discovered during final hardening review
+* added focused integration tests (non-interactive setup + iptables parsing) and a GitHub Actions workflow to run validation on every PR
+* tightened integration tests: non-interactive setup now verifies expected installer banner, and iptables parser test now validates source-IP-only extraction
+
+~~~~~~~~~~~~~~~~~~~~~~
 version 1.4.1
 ~~~~~~~~~~~~~~~~~~~~~~
 
